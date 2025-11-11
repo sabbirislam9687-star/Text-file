@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>স্মার্ট ফাইল এডিটর</title>
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="একটি আধুনিক এবং শক্তিশালী ফাইল এডিটর">
+    
+    <!-- PWA Manifest (Built-in) -->
+    <link rel="manifest" id="app-manifest">
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .app-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .app-content {
+            padding: 24px;
+        }
+
+        .file-info-card {
+            background: var(--bg);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .editor-container {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #file-content {
+            width: 100%;
+            min-height: 400px;
+            border: none;
+            padding: 20px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+            resize: vertical;
+            background: var(--card);
+            color: var(--text);
+        }
+
+        #file-content:focus {
+            outline: none;
+        }
+
+        .editor-status {
+            background: var(--bg);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            background: var(--success);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .install-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .app-header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .app-stats {
+                justify-content: center;
+            }
+
+            .toolbar {
+                justify-content: center;
+            }
+
+            .btn {
+                flex: 1;
+                min-width: 120px;
+                justify-content: center;
+            }
+
+            .editor-status {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="app-title">
+                <span>📝</span>
+                স্মার্ট ফাইল এডিটর
+                <button class="install-btn" id="install-btn" style="display: none;">
+                    📲 ইন্সটল করুন
+                </button>
+            </div>
+            <div class="app-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="char-count">0</div>
+                    <div>অক্ষর</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="word-count">0</div>
+                    <div>শব্দ</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="line-count">0</div>
+                    <div>লাইন</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-content">
+            <div class="file-info-card">
+                <div class="file-info">
+                    <strong>বর্তমান ফাইল:</strong> <span id="current-file-name">কোনো ফাইল ওপেন নেই</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 14px; color: var(--text-light);">
+                    <span id="file-size">-</span> • <span id="file-modified">-</span>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn btn-primary" id="new-btn">
+                    <span>🆕</span> নতুন ফাইল
+                </button>
+                <button class="btn btn-primary" id="open-btn">
+                    <span>📂</span> ফাইল ওপেন
+                </button>
+                <button class="btn btn-success" id="save-btn" disabled>
+                    <span>💾</span> সেভ করুন
+                </button>
+                <button class="btn btn-warning" id="save-as-btn">
+                    <span>📋</span> নতুন নামে সেভ
+                </button>
+                <button class="btn btn-danger" id="clear-btn">
+                    <span>🗑️</span> ক্লিয়ার
+                </button>
+            </div>
+
+            <div class="editor-container">
+                <textarea 
+                    id="file-content" 
+                    placeholder="এখানে আপনার কন্টেন্ট লিখুন... অথবা একটি ফাইল ওপেন করুন।"
+                    spellcheck="true"
+                ></textarea>
+                <div class="editor-status">
+                    <div>
+                        <span>লাইন: </span>
+                        <span id="current-line">1</span>
+                        <span> • কলাম: </span>
+                        <span id="current-column">1</span>
+                    </div>
+                    <div>
+                        <div class="badge badge-warning" id="unsaved-badge" style="display: none;">
+                            * সেভ করা হয়নি
+                        </div>
+                        <div class="badge badge-success" id="saved-badge">
+                            ✓ সেভ করা হয়েছে
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // PWA Manifest (Built-in)
+        const manifest = {
+            "name": "স্মার্ট ফাইল এডিটর",
+            "short_name": "ফাইল এডিটর",
+            "description": "একটি আধুনিক এবং শক্তিশালী ফাইল এডিটর",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#f8fafc",
+            "theme_color": "#2563eb",
+            "orientation": "any",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIGZpbGw9IiMyNTYzZWIiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iODAiIGZvbnQtZmFtaWx5PSJBcmlhbCI+RjwvdGV4dD48L3N2Zz4=",
+                    "sizes": "192x192",
+                    "type": "image/svg+xml"
+                }
+            ]
+        };
+
+        // Set manifest dynamically
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        document.getElementById('app-manifest').href = manifestURL;
+
+        // App State
+        let currentFileHandle = null;
+        let hasUnsavedChanges = false;
+        let deferredPrompt;
+
+        // DOM Elements
+        const elements = {
+            fileContent: document.getElementById('file-content'),
+            currentFileName: document.getElementById('current-file-name'),
+            charCount: document.getElementById('char-count'),
+            wordCount: document.getElementById('word-count'),
+            lineCount: document.getElementById('line-count'),
+            currentLine: document.getElementById('current-line'),
+            currentColumn: document.getElementById('current-column'),
+            fileSize: document.getElementById('file-size'),
+            fileModified: document.getElementById('file-modified'),
+            saveBtn: document.getElementById('save-btn'),
+            unsavedBadge: document.getElementById('unsaved-badge'),
+            savedBadge: document.getElementById('saved-badge'),
+            toast: document.getElementById('toast'),
+            installBtn: document.getElementById('install-btn')
+        };
+
+        // Initialize App
+        function initApp() {
+            setupEventListeners();
+            updateStats();
+            setupPWA();
+        }
+
+        // PWA Setup
+        function setupPWA() {
+            // Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('data:application/javascript;base64,' + btoa(`
+                    self.addEventListener('install', (event) => {
+                        self.skipWaiting();
+                    });
+                    self.addEventListener('fetch', (event) => {
+                        event.respondWith(fetch(event.request));
+                    });
+                `));
+            }
+
+            // Install Prompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                elements.installBtn.style.display = 'block';
+            });
+
+            elements.installBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    elements.installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            });
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Button events
+            document.getElementById('new-btn').addEventListener('click', newFile);
+            document.getElementById('open-btn').addEventListener('click', openFile);
+            document.getElementById('save-btn').addEventListener('click', saveFile);
+            document.getElementById('save-as-btn').addEventListener('click', saveAsFile);
+            document.getElementById('clear-btn').addEventListener('click', clearEditor);
+
+            // Editor events
+            elements.fileContent.addEventListener('input', handleContentChange);
+            elements.fileContent.addEventListener('keyup', updateCursorPosition);
+            elements.fileContent.addEventListener('click', updateCursorPosition);
+        }
+
+        // File Operations
+        async function newFile() {
+            if (hasUnsavedChanges && !confirm('সেভ না করা পরিবর্তন হারিয়ে যাবে। আপনি কি নিশ্চিত?')) {
+                return;
+            }
+            
+            elements.fileContent.value = '';
+            currentFileHandle = null;
+            updateFileInfo('নতুন ফাইল', '0 B', 'এখনই');
+            hasUnsavedChanges = false;
+            updateUI();
+            updateStats();
+            showToast('নতুন ফাইল তৈরি করা হয়েছে');
+        }
+
+        async function openFile() {
+            try {
+                if (!('showOpenFilePicker' in window)) {
+                    showToast('আপনার ব্রাউজার ফাইল সিস্টেম API সাপোর্ট করে না');
+                    return;
+                }
+
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [
+                        {
+                            description: 'Text Files',
+                            accept: {'text/plain': ['.txt', '.text']},
+                        }
+                    ],
+                    multiple: false,
+                });
+
+                const file = await fileHandle.getFile();
+                const content = await file.text();
+                
+                elements.fileContent.value = content;
+                currentFileHandle = fileHandle;
+                
+                updateFileInfo(
+                    file.name,
+                    formatFileSize(file.size),
+                    new Date(file.lastModified).toLocaleString('bn-BD')
+                );
+
+                hasUnsavedChanges = false;
+                updateUI();
+                updateStats();
+                showToast(`ফাইল ওপেন করা হয়েছে: ${file.name}`);
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    showToast('ফাইল ওপেন করতে সমস্যা হয়েছে');
+                }
+            }
+        }
+
+        async function saveFile() {
+            if (!currentFileHandle) {
+                await saveAsFile();
+                return;
+            }
+
+            try {
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(elements.fileContent.value);
+                await writable.close();
+
+                hasUnsavedChanges = false;
+                updateUI();
+                showToast('ফাইল সফলভাবে সেভ করা হয়েছে');
+
+            } catch (error) {
+                showToast('ফাইল সেভ করতে সমস্যা হয়েছে');
+            }
+        }
+
+        async function saveAsFile() {
+            try {
+                currentFileHandle = await window.showSaveFilePicker({
+                    types: [
+                        {
+                            description: 'Text Files',
+                            accept: {'text/plain': ['.txt']},
+                        },
+                    ],
+                });
+
+                await saveFile();
+                
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    showToast('ফাইল সেভ করতে সমস্যা হয়েছে');
+                }
+            }
+        }
+
+        function clearEditor() {
+            if (elements.fileContent.value.trim() && !confirm('সমস্ত কন্টেন্ট মুছে ফেলা হবে। আপনি কি নিশ্চিত?')) {
+                return;
+            }
+            elements.fileContent.value = '';
+            updateStats();
+            showToast('এডিটর ক্লিয়ার করা হয়েছে');
+        }
+
+        // Utility Functions
+        function handleContentChange() {
+            hasUnsavedChanges = true;
+            updateUI();
+            updateStats();
+        }
+
+        function updateUI() {
+            elements.saveBtn.disabled = !hasUnsavedChanges;
+            elements.unsavedBadge.style.display = hasUnsavedChanges ? 'block' : 'none';
+            elements.savedBadge.style.display = hasUnsavedChanges ? 'none' : 'block';
+        }
+
+        function updateStats() {
+            const content = elements.fileContent.value;
+            const charCount = content.length;
+            const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+            const lineCount = content ? content.split('\n').length : 1;
+
+            elements.charCount.textContent = charCount.toLocaleString('bn-BD');
+            elements.wordCount.textContent = wordCount.toLocaleString('bn-BD');
+            elements.lineCount.textContent = lineCount.toLocaleString('bn-BD');
+        }
+
+        function updateCursorPosition() {
+            const textarea = elements.fileContent;
+            const text = textarea.value.substr(0, textarea.selectionStart);
+            const lines = text.split('\n');
+            const line = lines.length;
+            const column = lines[lines.length - 1].length + 1;
+
+            elements.currentLine.textContent = line;
+            elements.currentColumn.textContent = column;
+        }
+
+        function updateFileInfo(name, size, modified) {
+            elements.currentFileName.textContent = name;
+            elements.fileSize.textContent = size;
+            elements.fileModified.textContent = modified;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Toast Notifications
+        function showToast(message, duration = 3000) {
+            elements.toast.textContent = message;
+            elements.toast.classList.add('show');
+            
+            setTimeout(() => {
+                elements.toast.classList.remove('show');
+            }, duration);
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        // Before unload warning
+        window.addEventListener('beforeunload', (e) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>
