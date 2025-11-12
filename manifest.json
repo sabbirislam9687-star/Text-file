@@ -7,12 +7,12 @@
   "theme_color": "#0d6efd",
   "icons": [
     {
-      "src": "wab-app-manifest-192×192.png",
+      "src": "192 d.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "wab-app-manifest-512×512.png",
+      "src": "512 d.png",
       "sizes": "512x512",
       "type": "image/png"
     }
