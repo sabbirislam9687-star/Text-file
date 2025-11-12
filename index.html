@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>টেক্সট ফাইল এডিটর</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d6efd">
+</head>
+<body>
+  <header>
+    <h2>📝 টেক্সট ফাইল এডিটর</h2>
+    <button id="menuBtn">☰</button>
+  </header>
+
+  <div id="menu">
+    <button onclick="saveFile()">💾 সেভ</button>
+    <button onclick="openFile()">📂 ওপেন</button>
+    <button onclick="clearText()">🧹 ক্লিয়ার</button>
+    <button onclick="shareText()">📤 শেয়ার</button>
+    <button onclick="changeColor()">🎨 কালার</button>
+    <button onclick="changeFont()">🔤 ফন্ট</button>
+  </div>
+
+  <textarea id="editor" placeholder="এখানে লিখুন..."></textarea>
+
+  <script src="script.js"></script>
+</body>
+  </html>
