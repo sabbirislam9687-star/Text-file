@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Advanced Text Editor — Final</title>
+  <meta name="theme-color" content="#2563eb" />
+  <!-- Optional Google fonts (will load if online) -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family: "Roboto", "Noto Sans Bengali", Arial, sans-serif;
+      background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      padding:12px;
+      min-height:100vh;color:#0f172a;
+    }
+
+    /* App container */
+    .app{
+      max-width:1200px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;
+      box-shadow:0 14px 40px rgba(2,6,23,0.35);display:flex;flex-direction:column;
+    }
+
+    /* Header */
+    .header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#2563eb;color:#fff}
+    .title{font-weight:700;font-size:18px;display:flex;gap:10px;align-items:center}
+    .hambtn{background:none;border:0;color:#fff;font-size:22px;padding:8px;border-radius:8px;cursor:pointer}
+    .hambtn:focus{outline:2px solid rgba(255,255,255,.12)}
+
+    /* Menu panel (3-line / hamburger) */
+    .menu-panel{
+      position:absolute;top:68px;right:18px;min-width:320px;background:#fff;border-radius:10px;
+      box-shadow:0 10px 30px rgba(2,6,23,0.25);z-index:1500;padding:8px;display:none;
+    }
+    .menu-panel.active{display:block}
+    .menu-group{border-bottom:1px solid #eef2f7;padding:8px 6px}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;cursor:pointer}
+    .menu-item:hover{background:#f6f9ff}
+    .menu-item .ln{font-size:14px}
+    .menu-item .sub{font-size:12px;color:#64748b;margin-left:auto}
+
+    /* Stats */
+    .stats{display:flex;gap:8px;justify-content:space-around;padding:10px;background:#f8fafc;border-bottom:1px solid #e6eef8}
+    .stat{ text-align:center }
+    .stat .val{font-weight:700;color:#2563eb}
+
+    /* Editor area */
+    .main{display:flex;gap:14px;padding:14px;align-items:flex-start}
+    .editor-area{flex:1;min-width:320px}
+    .editor-box{border:2px solid #e6eef8;border-radius:10px;padding:12px;min-height:460px;background:#fff;position:relative;overflow:auto}
+    #editor{min-height:380px;outline:none;font-size:16px;line-height:1.7;caret-color:#2563eb;padding:6px}
+    #editor:empty:before{content:attr(data-placeholder);color:#94a3b8}
+
+    /* Handwriting canvas layered over editor when active */
+    .canvas{display:none;position:relative}
+    .active-handwriting .canvas{display:block}
+    .active-handwriting #editor{display:none}
+    #hand-canvas{width:100%;height:420px;border-radius:8px;background:#fff;touch-action:none;display:block;border:1px solid #e6eef8}
+
+    /* Handwriting toolset (keeps in editor box or top of page) */
+    .hand-tools{display:none;gap:10px;padding:10px;margin-top:10px;border-radius:8px;background:#f8fafc;border:1px solid #e9f2ff}
+    .hand-tools.active{display:flex;flex-wrap:wrap;align-items:center}
+
+    .btn{padding:8px 10px;border-radius:8px;border:0;cursor:pointer;font-size:13px}
+    .btn.primary{background:#2563eb;color:#fff}
+    .btn.ghost{background:#fff;border:1px solid #e6eef8;color:#0f172a}
+    .input{padding:8px;border-radius:8px;border:1px solid #e6eef8;font-size:14px}
+
+    .swatch{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 4px 12px rgba(2,6,23,0.08);cursor:pointer}
+
+    /* Right panel */
+    .right{width:320px;display:flex;flex-direction:column;gap:10px}
+
+    .panel{background:#fff;border-radius:10px;padding:12px;border:1px solid #eef6ff}
+    .label{font-size:13px;color:#0f172a;margin-bottom:6px}
+
+    .image-preview{max-width:100%;max-height:200px;border-radius:8px;border:1px solid #e6eef8;display:none;margin-top:8px}
+
+    /* Status bar */
+    .status{display:flex;justify-content:space-between;padding:10px 14px;background:#f8fafc;border-top:1px solid #e6eef8}
+    .unsaved{color:#ef4444;font-weight:700;display:none}
+
+    @media (max-width:880px){
+      .main{flex-direction:column}
+      .right{width:100%}
+      .menu-panel{left:10px;right:10px;top:70px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="header">
+      <div class="title">✏️ Advanced Text Editor — (Sabbir)</div>
+      <button class="hambtn" id="hambtn" onclick="toggleMenu()" aria-label="Menu ☰">☰</button>
+
+      <div class="menu-panel" id="menu-panel" aria-hidden="true">
+        <div class="menu-group">
+          <div style="font-weight:700;margin-bottom:8px">ফাইল — File</div>
+          <div class="menu-item" onclick="newFile()"><div class="ln">🆕 নতুন ফাইল</div><div class="sub">New File</div></div>
+          <div class="menu-item" onclick="openFile()"><div class="ln">📂 ফাইল খুলুন</div><div class="sub">Open (HTML/TXT)</div></div>
+          <div class="menu-item" onclick="saveFile()"><div class="ln">💾 সেভ করুন</div><div class="sub">Save (HTML preserves images)</div></div>
+          <div class="menu-item" onclick="exportFile()"><div class="ln">📤 এক্সপোর্ট</div><div class="sub">Download .html / .txt</div></div>
+        </div>
+
+        <div class="menu-group">
+          <div style="font-weight:700;margin-bottom:8px">এডভান্স — Advanced</div>
+          <div class="menu-item" onclick="toggleRightPanel('font')"><div class="ln">🔤 ফন্ট পরিবর্তন</div><div class="sub">Fonts & custom</div></div>
+          <div class="menu-item" onclick="toggleRightPanel('color')"><div class="ln">🎨 ফন্ট কালার</div><div class="sub">Color picker</div></div>
+          <div class="menu-item" onclick="formatText('bold')"><div class="ln">B বোল্ড</div><div class="sub">Bold</div></div>
+          <div class="menu-item" onclick="formatText('italic')"><div class="ln">I ইটালিক</div><div class="sub">Italic</div></div>
+          <div class="menu-item" onclick="formatText('underline')"><div class="ln">U আন্ডারলাইন</div><div class="sub">Underline</div></div>
+          <div class="menu-item" onclick="insertBulletPoints()"><div class="ln">• বুলেট</div><div class="sub">List</div></div>
+          <div class="menu-item" onclick="clearFormatting()"><div class="ln">🧹 ফরম্যাট মুছুন</div><div class="sub">Clear formatting</div></div>
+        </div>
+
+        <div class="menu-group">
+          <div style="font-weight:700;margin-bottom:8px">টুলস — Tools</div>
+          <div class="menu-item" onclick="toggleHandwriting()"><div class="ln">✍️ হ্যান্ডরাইটিং</div><div class="sub">Handwriting Mode</div></div>
+          <div class="menu-item" onclick="addImage()"><div class="ln">🖼️ ছবি যোগ করুন</div><div class="sub">Insert image (embedded)</div></div>
+          <div class="menu-item" onclick="showWordCount()"><div class="ln">📊 শব্দ গণনা</div><div class="sub">Statistics</div></div>
+          <div class="menu-item" onclick="printDocument()"><div class="ln">🖨️ প্রিন্ট</div><div class="sub">Print</div></div>
+        </div>
+
+        <div style="padding:8px;text-align:center;color:#64748b;font-size:13px">সার্চ / শর্টকাট — Use top-right menu for quick access</div>
+      </div>
+    </header>
+
+    <div class="stats" aria-hidden="false">
+      <div class="stat"><div class="val" id="char-count">0</div><div class="muted">Characters</div></div>
+      <div class="stat"><div class="val" id="word-count">0</div><div class="muted">Words</div></div>
+      <div class="stat"><div class="val" id="line-count">0</div><div class="muted">Lines</div></div>
+      <div class="stat"><div class="val" id="page-count">1</div><div class="muted">Pages</div></div>
+    </div>
+
+    <div class="main">
+      <div class="editor-area">
+        <div class="editor-box" id="editor-box">
+          <div id="editor" contenteditable="true" data-placeholder="এখানে টাইপ শুরু করুন... (মেনু থেকে সব অপশন)"></div>
+
+          <!-- handwriting canvas (overlays editor when active) -->
+          <div class="canvas" id="canvas-wrap">
+            <canvas id="hand-canvas"></canvas>
+          </div>
+
+          <!-- handwriting tools -->
+          <div class="hand-tools" id="hand-tools">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="label">Brush Mode</div>
+              <select id="brush-mode" class="input" onchange="setBrushMode(this.value)">
+                <option value="normal">Normal</option>
+                <option value="3d">3D / Shadow</option>
+                <option value="calligraphy">Calligraphy</option>
+                <option value="neon">Neon (glow)</option>
+              </select>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="label">Brush Size</div>
+              <input id="brush-size" type="range" min="1" max="80" value="6" oninput="changeBrushSize(this.value)">
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="label">Brush Color</div>
+              <input id="brush-color" type="color" value="#111111" onchange="changeBrushColor(this.value)">
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+              <div class="label">Actions</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn ghost" onclick="clearCanvas()">Clear</button>
+                <button class="btn primary" onclick="saveDrawing()">Save Drawing</button>
+                <button class="btn ghost" onclick="toggleHandwriting()">Back to Text</button>
+              </div>
+            </div>
+          </div>
+
+          <img id="image-preview" class="image-preview" alt="preview">
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel" id="panel-font">
+          <div class="label">Font selector</div>
+          <select id="font-select" class="input" onchange="changeFont(this.value)">
+            <option value="inherit">Default</option>
+            <option value="Roboto, Arial, sans-serif">Roboto</option>
+            <option value="'Noto Sans Bengali', 'Roboto', sans-serif">Noto Sans Bengali</option>
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="'Times New Roman', serif">Times New Roman</option>
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="Verdana, sans-serif">Verdana</option>
+            <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+            <option value="Garamond, serif">Garamond</option>
+            <option value="'Comic Sans MS', cursive">Comic Sans</option>
+          </select>
+
+          <div style="margin-top:8px" class="muted">Custom font-family (type full family) </div>
+          <input id="custom-font" class="input" placeholder="e.g. 'Noto Sans Bengali', sans-serif" style="margin-top:8px">
+          <button class="btn ghost" style="margin-top:8px" onclick="applyCustomFont()">Apply custom font</button>
+        </div>
+
+        <div class="panel" id="panel-color">
+          <div class="label">Font color</div>
+          <input id="font-color" type="color" class="input" value="#000000" onchange="changeTextColor(this.value)">
+          <div style="margin-top:8px" class="muted">Select a color then highlight text or place cursor</div>
+        </div>
+
+        <div class="panel">
+          <div class="label">Quick actions</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn primary" onclick="formatText('bold')">B</button>
+            <button class="btn ghost" onclick="formatText('italic')">I</button>
+            <button class="btn ghost" onclick="formatText('underline')">U</button>
+            <button class="btn ghost" onclick="insertBulletPoints()">• List</button>
+            <button class="btn ghost" onclick="clearFormatting()">Clear</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="label">Images</div>
+          <div class="muted">Inserted images are embedded as data so they remain when saving as HTML</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn ghost" onclick="addImage()">Insert image</button>
+            <button class="btn ghost" onclick="downloadEmbeddedImages()">Download embedded images</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Word count modal -->
+    <div id="word-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:1600">
+      <div style="background:#fff;padding:18px;border-radius:12px;max-width:420px;width:92%">
+        <h3>📊 Text Statistics</h3>
+        <div style="margin:12px 0">
+          <p><strong>Characters:</strong> <span id="modal-char">0</span></p>
+          <p><strong>Words:</strong> <span id="modal-word">0</span></p>
+          <p><strong>Lines:</strong> <span id="modal-line">0</span></p>
+          <p><strong>Pages:</strong> <span id="modal-page">1</span></p>
+          <p><strong>Reading time:</strong> <span id="modal-time">0</span> minutes</p>
+        </div>
+        <button class="btn primary" style="width:100%" onclick="closeWordModal()">Close</button>
+      </div>
+    </div>
+
+    <div class="status">
+      <div>File: <span id="current-file">Untitled</span></div>
+      <div class="unsaved" id="unsaved-ind">* Unsaved changes</div>
+    </div>
+  </div>
+
+  <script>
+    /* ===== State ===== */
+    let currentFileHandle = null;
+    let hasUnsaved = false;
+    let app = document.getElementById('app');
+    let menuPanel = document.getElementById('menu-panel');
+    let editor = document.getElementById('editor');
+    let handWrap = document.getElementById('canvas-wrap');
+    let handCanvas = document.getElementById('hand-canvas');
+    let handTools = document.getElementById('hand-tools');
+    let imagePreview = document.getElementById('image-preview');
+    let unsavedIndicator = document.getElementById('unsaved-ind');
+    let currentFileEl = document.getElementById('current-file');
+
+    // handwriting state
+    let isHandActive = false;
+    let isDrawing = false;
+    let brushMode = '3d';
+    let brushSize = 6;
+    let brushColor = '#111111';
+    let ctx = null;
+    let lastPos = null;
+
+    /* ===== Utilities ===== */
+    function toggleMenu(){ menuPanel.classList.toggle('active'); }
+    document.addEventListener('click', (e)=> {
+      if (!menuPanel.contains(e.target) && e.target.id !== 'hambtn') menuPanel.classList.remove('active');
+    });
+
+    function markUnsaved(){ hasUnsaved = true; unsavedIndicator.style.display = 'block'; }
+    function clearUnsaved(){ hasUnsaved = false; unsavedIndicator.style.display = 'none'; }
+
+    /* ===== Stats ===== */
+    function updateStats(){
+      const html = editor.innerHTML;
+      const text = editor.innerText || editor.textContent || '';
+      const chars = text.length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const lines = text ? text.split(/\r\n|\r|\n/).length : 1;
+      const pages = Math.max(1, Math.ceil(chars/2000));
+      const read = Math.max(1, Math.ceil(words/200));
+
+      document.getElementById('char-count').textContent = chars.toLocaleString();
+      document.getElementById('word-count').textContent = words.toLocaleString();
+      document.getElementById('line-count').textContent = lines;
+      document.getElementById('page-count').textContent = pages;
+
+      document.getElementById('modal-char').textContent = chars.toLocaleString();
+      document.getElementById('modal-word').textContent = words.toLocaleString();
+      document.getElementById('modal-line').textContent = lines;
+      document.getElementById('modal-page').textContent = pages;
+      document.getElementById('modal-time').textContent = read;
+
+      markUnsaved();
+    }
+    editor.addEventListener('input', updateStats);
+
+    /* ===== File operations ===== */
+    async function newFile(){
+      if (hasUnsaved && !confirm('You have unsaved changes. Discard?')) return;
+      editor.innerHTML = '';
+      currentFileHandle = null;
+      currentFileEl.textContent = 'Untitled';
+      clearUnsaved();
+      updateStats();
+      menuPanel.classList.remove('active');
+    }
+
+    async function openFile(){
+      try{
+        if (!('showOpenFilePicker' in window)){
+          alert('আপনার ব্রাউজারে File System Access API নেই — Export/Import ব্যবহার করুন।');
+          return;
+        }
+        const [handle] = await window.showOpenFilePicker({
+          types:[
+            { description:'HTML or Text', accept:{'text/html':['.html'], 'text/plain':['.txt']} }
+          ]
+        });
+        const file = await handle.getFile();
+        const content = await file.text();
+        if (file.type === 'text/html' || handle.name.endsWith('.html')){
+          // simple parse: take body innerHTML if exists
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(content,'text/html');
+          editor.innerHTML = doc.body ? doc.body.innerHTML : content;
+        } else {
+          editor.innerHTML = content.replace(/\n/g,'<br>');
+        }
+        currentFileHandle = handle;
+        currentFileEl.textContent = handle.name;
+        clearUnsaved();
+        updateStats();
+        menuPanel.classList.remove('active');
+      }catch(err){
+        console.log('open cancelled', err);
+      }
+    }
+
+    async function saveFile(){
+      try{
+        const hasFormatting = /<\/?(img|b|strong|i|u|span|div|p|ul|ol|li)[^>]*>/i.test(editor.innerHTML);
+        const suggested = hasFormatting ? 'document.html' : 'document.txt';
+        if (!currentFileHandle){
+          if (!('showSaveFilePicker' in window)){
+            exportFile(); return;
+          }
+          currentFileHandle = await window.showSaveFilePicker({
+            suggestedName: suggested,
+            types: hasFormatting ? [{description:'HTML file', accept:{'text/html':['.html']}}] : [{description:'Text file', accept:{'text/plain':['.txt']}}]
+          });
+        }
+        const writable = await currentFileHandle.createWritable();
+        if (hasFormatting){
+          const html = `<!doctype html><html><head><meta charset="utf-8"><title>${currentFileHandle.name}</title></head><body>${editor.innerHTML}</body></html>`;
+          await writable.write(html);
+        } else {
+          await writable.write(editor.innerText || editor.textContent || '');
+        }
+        await writable.close();
+        currentFileEl.textContent = currentFileHandle.name;
+        clearUnsaved();
+        alert('File saved successfully!');
+        menuPanel.classList.remove('active');
+      }catch(err){
+        console.log('save cancelled', err);
+      }
+    }
+
+    function exportFile(){
+      const hasFormatting = /<\/?(img|b|strong|i|u|span|div|p|ul|ol|li)[^>]*>/i.test(editor.innerHTML);
+      const content = hasFormatting ? `<!doctype html><html><head><meta charset="utf-8"><title>document</title></head><body>${editor.innerHTML}</body></html>` : (editor.innerText || editor.textContent || '');
+      const blob = new Blob([content], { type: hasFormatting ? 'text/html' : 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = hasFormatting ? 'document.html' : 'document.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+      menuPanel.classList.remove('active');
+    }
+
+    /* ===== Text formatting & fonts & color ===== */
+    function formatText(cmd){ document.execCommand(cmd,false,null); updateStats(); }
+    function insertBulletPoints(){ document.execCommand('insertUnorderedList',false,null); updateStats(); }
+    function clearFormatting(){ document.execCommand('removeFormat',false,null); updateStats(); }
+
+    function changeFont(font){
+      try{ document.execCommand('fontName',false,font); }
+      catch(e){ wrapSelectionWithStyle(`font-family:${font}`); }
+      updateStats();
+    }
+    function applyCustomFont(){
+      const v = document.getElementById('custom-font').value.trim();
+      if (!v){ alert('Type font-family string first'); return; }
+      changeFont(v);
+    }
+
+    function changeTextColor(color){ document.execCommand('foreColor',false,color); updateStats(); }
+
+    function wrapSelectionWithStyle(style){
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const span = document.createElement('span');
+      span.style.cssText = style;
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+      sel.removeAllRanges();
+    }
+
+    /* ===== Word modal ===== */
+    function showWordCount(){ document.getElementById('word-modal').style.display='flex'; menuPanel.classList.remove('active'); }
+    function closeWordModal(){ document.getElementById('word-modal').style.display='none'; }
+
+    /* ===== Image insert & handle (embedded) ===== */
+    function addImage(){
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = function(e){
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt){
+          const src = evt.target.result;
+          const img = document.createElement('img');
+          img.src = src; img.style.maxWidth = '100%'; img.style.height = 'auto'; img.style.borderRadius='8px'; img.style.margin='8px 0';
+          // insert at caret
+          const sel = window.getSelection();
+          if (sel.rangeCount){
+            const range = sel.getRangeAt(0);
+            range.collapse(false);
+            range.insertNode(img);
+          } else editor.appendChild(img);
+          imagePreview.src = src; imagePreview.style.display='block';
+          markUnsaved();
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+      menuPanel.classList.remove('active');
+    }
+
+    function extractEmbeddedImages(){
+      const imgs = editor.querySelectorAll('img');
+      const arr = [];
+      imgs.forEach((img,i)=>{
+        if (img.src && img.src.startsWith('data:')) arr.push({name:`embedded-${i+1}.png`, data:img.src});
+      });
+      return arr;
+    }
+
+    function downloadEmbeddedImages(){
+      const imgs = extractEmbeddedImages();
+      if (!imgs.length) { alert('No embedded images found'); return; }
+      imgs.forEach(it => {
+        const a = document.createElement('a'); a.href = it.data; a.download = it.name; a.click();
+      });
+    }
+
+    /* ===== Print ===== */
+    function printDocument(){
+      const w = window.open('','_blank');
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print</title><style>body{font-family:Arial, sans-serif;padding:18px}</style></head><body>${editor.innerHTML}</body></html>`);
+      w.document.close();
+      w.print();
+      menuPanel.classList.remove('active');
+    }
+
+    /* ===== Handwriting canvas and 3D effects ===== */
+    function setupCanvas(){
+      const rect = handCanvas.getBoundingClientRect();
+      const dpr = devicePixelRatio || 1;
+      handCanvas.width = rect.width * dpr;
+      handCanvas.height = rect.height * dpr;
+      handCanvas.style.width = rect.width + 'px';
+      handCanvas.style.height = rect.height + 'px';
+      ctx = handCanvas.getContext('2d');
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.lineCap = 'round'; ctx.lineJoin='round';
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,rect.width,rect.height);
+      ctx.strokeStyle = brushColor; ctx.lineWidth = brushSize;
+    }
+
+    function toggleHandwriting(){
+      isHandActive = !isHandActive;
+      app.classList.toggle('active-handwriting', isHandActive);
+      handTools.classList.toggle('active', isHandActive);
+      if (isHandActive){
+        // show canvas
+        handWrap.scrollIntoView({behavior:'smooth', block:'center'});
+        setTimeout(()=> setupCanvas(),80);
+      } else {
+        // hide and reset some listeners maybe
+      }
+      menuPanel.classList.remove('active');
+    }
+
+    function setBrushMode(mode){ brushMode = mode; }
+    function changeBrushSize(val){ brushSize = Number(val); if (ctx) ctx.lineWidth = brushSize; }
+    function changeBrushColor(val){ brushColor = val; if (ctx) ctx.strokeStyle = brushColor; }
+
+    function getPointerPos(e){
+      const rect = handCanvas.getBoundingClientRect();
+      let clientX, clientY;
+      if (e.touches && e.touches[0]){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+      else { clientX = e.clientX; clientY = e.clientY; }
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function pointerDown(e){
+      isDrawing = true;
+      lastPos = getPointerPos(e);
+      ctx.beginPath();
+      ctx.moveTo(lastPos.x, lastPos.y);
+    }
+
+    function pointerMove(e){
+      if (!isDrawing) return;
+      const pos = getPointerPos(e);
+      // smoothing (simple approach)
+      const midX = (lastPos.x + pos.x) / 2;
+      const midY = (lastPos.y + pos.y) / 2;
+
+      if (brushMode === 'normal'){
+        ctx.save();
+        ctx.shadowColor = 'transparent';
+        ctx.lineWidth = brushSize;
+        ctx.strokeStyle = brushColor;
+        ctx.quadraticCurveTo(lastPos.x, lastPos.y, midX, midY);
+        ctx.stroke();
+        ctx.restore();
+      } else if (brushMode === '3d'){
+        // shadow layer
+        ctx.save();
+        ctx.lineWidth = brushSize + 6;
+        ctx.strokeStyle = shadeColor(brushColor, -50);
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.moveTo(lastPos.x + 4, lastPos.y + 4);
+        ctx.quadraticCurveTo(lastPos.x + 4, lastPos.y + 4, midX + 4, midY + 4);
+        ctx.stroke();
+        ctx.restore();
+
+        // main stroke
+        ctx.save();
+        ctx.lineWidth = brushSize;
+        ctx.strokeStyle = brushColor;
+        ctx.beginPath();
+        ctx.moveTo(lastPos.x, lastPos.y);
+        ctx.quadraticCurveTo(lastPos.x, lastPos.y, midX, midY);
+        ctx.stroke();
+        ctx.restore();
+      } else if (brushMode === 'calligraphy'){
+        // simulate varying width
+        const w = Math.max(1, brushSize + Math.sin(midX/10)*4);
+        ctx.save();
+        ctx.lineWidth = w;
+        ctx.strokeStyle = brushColor;
+        ctx.beginPath();
+        ctx.moveTo(lastPos.x, lastPos.y);
+        ctx.quadraticCurveTo(lastPos.x, lastPos.y, midX, midY);
+        ctx.stroke();
+        ctx.restore();
+      } else if (brushMode === 'neon'){
+        // glow effect: draw thicker blurred stroke under main
+        ctx.save();
+        ctx.lineWidth = brushSize + 10;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = brushColor;
+        ctx.strokeStyle = brushColor;
+        ctx.beginPath();
+        ctx.moveTo(lastPos.x, lastPos.y);
+        ctx.quadraticCurveTo(lastPos.x, lastPos.y, midX, midY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.lineWidth = brushSize;
+        ctx.strokeStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(lastPos.x, lastPos.y);
+        ctx.quadraticCurveTo(lastPos.x, lastPos.y, midX, midY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      lastPos = pos;
+    }
+
+    function pointerUp(e){
+      isDrawing = false;
+      ctx.beginPath();
+    }
+
+    function clearCanvas(){
+      const rect = handCanvas.getBoundingClientRect();
+      ctx.clearRect(0,0,handCanvas.width, handCanvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0,0,rect.width, rect.height);
+    }
+
+    function saveDrawing(){
+      // Convert to dataURL and insert as image into editor (embedded)
+      const dataURL = handCanvas.toDataURL('image/png');
+      const img = document.createElement('img');
+      img.src = dataURL; img.style.maxWidth='100%'; img.style.borderRadius='8px'; img.style.margin='8px 0';
+      // Insert into editor
+      const sel = window.getSelection();
+      if (sel.rangeCount){
+        const range = sel.getRangeAt(0);
+        range.collapse(false);
+        range.insertNode(img);
+      } else editor.appendChild(img);
+      imagePreview.src = dataURL; imagePreview.style.display = 'block';
+      // return to text mode
+      toggleHandwriting();
+      markUnsaved();
+    }
+
+    // attach pointer events (mouse & touch)
+    handCanvas.addEventListener('mousedown', pointerDown);
+    handCanvas.addEventListener('mousemove', pointerMove);
+    document.addEventListener('mouseup', pointerUp);
+    handCanvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); pointerDown(e); }, {passive:false});
+    handCanvas.addEventListener('touchmove', (e)=>{ e.preventDefault(); pointerMove(e); }, {passive:false});
+    handCanvas.addEventListener('touchend', (e)=>{ e.preventDefault(); pointerUp(e); }, {passive:false});
+
+    // On resize adjust canvas
+    window.addEventListener('resize', ()=>{ if (isHandActive) setupCanvas(); });
+
+    // color helper
+    function shadeColor(hex, percent){
+      // percent -100..100
+      const f = hex.slice(1);
+      const t = percent < 0 ? 0 : 255;
+      const p = Math.abs(percent)/100;
+      const R = parseInt(f.substring(0,2),16);
+      const G = parseInt(f.substring(2,4),16);
+      const B = parseInt(f.substring(4,6),16);
+      const newR = Math.round((t - R)*p) + R;
+      const newG = Math.round((t - G)*p) + G;
+      const newB = Math.round((t - B)*p) + B;
+      return '#' + ((1<<24) + (newR<<16) + (newG<<8) + newB).toString(16).slice(1);
+    }
+
+    /* ===== Right panel toggles (UX: reveal panel sections by scrolling) ===== */
+    function toggleRightPanel(name){
+      if (name === 'font') document.getElementById('panel-font').scrollIntoView({behavior:'smooth', block:'center'});
+      if (name === 'color') document.getElementById('panel-color').scrollIntoView({behavior:'smooth', block:'center'});
+      menuPanel.classList.remove('active');
+    }
+
+    /* ===== Init defaults ===== */
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // default brush settings
+      document.getElementById('brush-size').value = brushSize;
+      document.getElementById('brush-color').value = brushColor;
+      document.getElementById('brush-mode').value = brushMode;
+
+      // setup canvas size initially
+      setTimeout(()=> {
+        try{ setupCanvas(); }catch(e){ console.log('canvas init error', e); }
+      },120);
+
+      // placeholder text styling: ensure editable
+      if (!editor.innerHTML) editor.innerHTML = '';
+      updateStats();
+    });
+
+    /* ===== Expose functions (for onclick attributes) ===== */
+    window.newFile = newFile;
+    window.openFile = openFile;
+    window.saveFile = saveFile;
+    window.exportFile = exportFile;
+    window.formatText = formatText;
+    window.insertBulletPoints = insertBulletPoints;
+    window.clearFormatting = clearFormatting;
+    window.toggleHandwriting = toggleHandwriting;
+    window.addImage = addImage;
+    window.showWordCount = showWordCount;
+    window.printDocument = printDocument;
+    window.changeFont = function(v){ changeFont(v); };
+    window.changeTextColor = function(c){ changeTextColor(c); };
+    window.changeBrushSize = changeBrushSize;
+    window.changeBrushColor = changeBrushColor;
+    window.setBrushMode = setBrushMode;
+    window.clearCanvas = clearCanvas;
+    window.saveDrawing = saveDrawing;
+    window.toggleRightPanel = toggleRightPanel;
+    window.downloadEmbeddedImages = downloadEmbeddedImages;
+
+  </script>
+</body>
+</html>
