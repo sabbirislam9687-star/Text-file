@@ -1,30 +1,842 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>টেক্সট ফাইল এডিটর</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d6efd">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Text Editor</title>
+    <meta name="theme-color" content="#2563eb">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .app-header {
+            background: #2563eb;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .app-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            min-width: 250px;
+        }
+        
+        .dropdown-menu.active {
+            display: block;
+        }
+        
+        .menu-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .menu-item:hover {
+            background: #f8fafc;
+        }
+        
+        .submenu {
+            display: none;
+            background: #f8fafc;
+        }
+        
+        .submenu.active {
+            display: block;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #f8fafc;
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 12px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        
+        .toolbar {
+            padding: 10px 15px;
+            background: #f1f5f9;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .color-palette {
+            display: none;
+            position: absolute;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        
+        .color-palette.active {
+            display: grid;
+        }
+        
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .color-option:hover {
+            border-color: #000;
+        }
+        
+        .font-selector {
+            display: none;
+            position: absolute;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .font-selector.active {
+            display: flex;
+        }
+        
+        .font-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .font-option:hover {
+            background: #f1f5f9;
+        }
+        
+        .editor-container {
+            padding: 15px;
+            position: relative;
+        }
+        
+        #file-content {
+            width: 100%;
+            height: 500px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 16px;
+            font-family: 'Arial', sans-serif;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        
+        #file-content:focus {
+            border-color: #2563eb;
+            outline: none;
+        }
+        
+        .handwriting-canvas {
+            display: none;
+            width: 100%;
+            height: 500px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            cursor: crosshair;
+        }
+        
+        .handwriting-tools {
+            display: none;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            margin-top: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .handwriting-tools.active {
+            display: flex;
+        }
+        
+        .status-bar {
+            padding: 10px 15px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        
+        .file-info {
+            color: #64748b;
+        }
+        
+        .unsaved {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .image-preview {
+            max-width: 200px;
+            max-height: 150px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h2>📝 টেক্সট ফাইল এডিটর</h2>
-    <button id="menuBtn">☰</button>
-  </header>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="app-title">✏️ Advanced Text Editor</div>
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            
+            <div class="dropdown-menu" id="dropdown-menu">
+                <!-- File Menu -->
+                <div class="menu-item" onclick="toggleSubmenu('file-menu')">
+                    📁 File Options
+                </div>
+                <div class="submenu" id="file-menu">
+                    <div class="menu-item" onclick="newFile()">
+                        🆕 New File - নতুন ফাইল
+                    </div>
+                    <div class="menu-item" onclick="openFile()">
+                        📂 Open File - ফাইল খুলুন
+                    </div>
+                    <div class="menu-item" onclick="saveFile()">
+                        💾 Save File - ফাইল সেভ করুন
+                    </div>
+                </div>
+                
+                <!-- Advanced Menu -->
+                <div class="menu-item" onclick="toggleSubmenu('advanced-menu')">
+                    ⚡ Advanced Text Options - এডভান্স টেক্সট অপশন
+                </div>
+                <div class="submenu" id="advanced-menu">
+                    <div class="menu-item" onclick="showFontSelector()">
+                        🔤 Change Font - ফন্ট পরিবর্তন
+                    </div>
+                    <div class="menu-item" onclick="showColorPalette()">
+                        🎨 Text Color - টেক্সট রং
+                    </div>
+                    <div class="menu-item" onclick="formatText('bold')">
+                        <b>B</b> Bold Text - বোল্ড টেক্সট
+                    </div>
+                    <div class="menu-item" onclick="formatText('italic')">
+                        <i>I</i> Italic Text - হালকা টেক্সট
+                    </div>
+                    <div class="menu-item" onclick="formatText('underline')">
+                        <u>U</u> Underline - আন্ডারলাইন
+                    </div>
+                    <div class="menu-item" onclick="addBulletPoints()">
+                        • Bullet Points - বুলেট পয়েন্ট
+                    </div>
+                </div>
+                
+                <!-- Tools Menu -->
+                <div class="menu-item" onclick="toggleSubmenu('tools-menu')">
+                    🛠️ Tools - টুলস
+                </div>
+                <div class="submenu" id="tools-menu">
+                    <div class="menu-item" onclick="toggleHandwriting()">
+                        ✍️ Handwriting - হাতের লেখা
+                    </div>
+                    <div class="menu-item" onclick="addImage()">
+                        🖼️ Add Image - ছবি যোগ করুন
+                    </div>
+                    <div class="menu-item" onclick="showWordCount()">
+                        📊 Word Count - শব্দ গণনা
+                    </div>
+                </div>
+                
+                <!-- Share & About -->
+                <div class="menu-item" onclick="toggleSubmenu('share-menu')">
+                    🔗 Share & About - শেয়ার এবং সম্পর্কে
+                </div>
+                <div class="submenu" id="share-menu">
+                    <div class="menu-item" onclick="shareContent()">
+                        📤 Share Text - টেক্সট শেয়ার করুন
+                    </div>
+                    <div class="menu-item" onclick="showAbout()">
+                        ℹ️ About - সম্পর্কে
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="char-count">0</div>
+                <div>Characters - অক্ষর</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="word-count">0</div>
+                <div>Words - শব্দ</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="line-count">0</div>
+                <div>Lines - লাইন</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="page-count">1</div>
+                <div>Page - পৃষ্ঠা</div>
+            </div>
+        </div>
+        
+        <div class="toolbar">
+            <button class="btn-primary" onclick="newFile()">
+                🆕 New - নতুন
+            </button>
+            <button class="btn-primary" onclick="openFile()">
+                📂 Open - খুলুন
+            </button>
+            <button class="btn-success" onclick="saveFile()" id="save-btn">
+                💾 Save - সেভ
+            </button>
+            <button class="btn-warning" onclick="showWordCount()">
+                📊 Count - গণনা
+            </button>
+            <button class="btn-primary" onclick="shareContent()">
+                📤 Share - শেয়ার
+            </button>
+        </div>
+        
+        <div class="editor-container">
+            <textarea 
+                id="file-content" 
+                placeholder="Start typing here... Use the menu for advanced features.
+এখানে টাইপ শুরু করুন... এডভান্স ফিচারের জন্য মেনু ব্যবহার করুন।"
+                oninput="updateStats()"
+            ></textarea>
+            
+            <canvas 
+                id="handwriting-canvas" 
+                class="handwriting-canvas"
+            ></canvas>
+            
+            <div class="handwriting-tools" id="handwriting-tools">
+                <button onclick="changeBrushColor('#000000')" style="background: #000; color: white;">Black - কালো</button>
+                <button onclick="changeBrushColor('#2563eb')" style="background: #2563eb; color: white;">Blue - নীল</button>
+                <button onclick="changeBrushColor('#ef4444')" style="background: #ef4444; color: white;">Red - লাল</button>
+                <button onclick="changeBrushSize(2)">Thin - পাতলা</button>
+                <button onclick="changeBrushSize(5)">Medium - মাঝারি</button>
+                <button onclick="changeBrushSize(10)">Thick - মোটা</button>
+                <button onclick="clearCanvas()">Clear - ক্লিয়ার</button>
+                <button onclick="saveDrawing()">Save - সেভ</button>
+            </div>
+            
+            <img id="image-preview" class="image-preview">
+        </div>
+        
+        <!-- Color Palette -->
+        <div class="color-palette" id="color-palette">
+            <div class="color-option" style="background: #000000;" onclick="changeTextColor('#000000')" title="Black - কালো"></div>
+            <div class="color-option" style="background: #2563eb;" onclick="changeTextColor('#2563eb')" title="Blue - নীল"></div>
+            <div class="color-option" style="background: #ef4444;" onclick="changeTextColor('#ef4444')" title="Red - লাল"></div>
+            <div class="color-option" style="background: #10b981;" onclick="changeTextColor('#10b981')" title="Green - সবুজ"></div>
+            <div class="color-option" style="background: #f59e0b;" onclick="changeTextColor('#f59e0b')" title="Orange - কমলা"></div>
+            <div class="color-option" style="background: #8b5cf6;" onclick="changeTextColor('#8b5cf6')" title="Purple - বেগুনি"></div>
+            <div class="color-option" style="background: #ec4899;" onclick="changeTextColor('#ec4899')" title="Pink - গোলাপি"></div>
+            <div class="color-option" style="background: #64748b;" onclick="changeTextColor('#64748b')" title="Gray - ধূসর"></div>
+        </div>
+        
+        <!-- Font Selector -->
+        <div class="font-selector" id="font-selector">
+            <div class="font-option" style="font-family: Arial;" onclick="changeFont('Arial')">Arial</div>
+            <div class="font-option" style="font-family: 'Times New Roman';" onclick="changeFont('Times New Roman')">Times New Roman</div>
+            <div class="font-option" style="font-family: 'Courier New';" onclick="changeFont('Courier New')">Courier New</div>
+            <div class="font-option" style="font-family: Georgia;" onclick="changeFont('Georgia')">Georgia</div>
+            <div class="font-option" style="font-family: Verdana;" onclick="changeFont('Verdana')">Verdana</div>
+            <div class="font-option" style="font-family: 'Comic Sans MS';" onclick="changeFont('Comic Sans MS')">Comic Sans</div>
+        </div>
+        
+        <!-- Modals -->
+        <div class="modal" id="word-count-modal">
+            <div class="modal-content">
+                <h3>📊 Text Statistics - টেক্সট পরিসংখ্যান</h3>
+                <div style="margin: 15px 0;">
+                    <p>Characters - অক্ষর: <span id="modal-char-count">0</span></p>
+                    <p>Words - শব্দ: <span id="modal-word-count">0</span></p>
+                    <p>Lines - লাইন: <span id="modal-line-count">0</span></p>
+                    <p>Pages - পৃষ্ঠা: <span id="modal-page-count">1</span></p>
+                </div>
+                <button onclick="closeModal('word-count-modal')" style="width: 100%; padding: 10px;">Close - বন্ধ</button>
+            </div>
+        </div>
+        
+        <div class="modal" id="about-modal">
+            <div class="modal-content">
+                <h3>ℹ️ About Advanced Text Editor</h3>
+                <div style="margin: 15px 0;">
+                    <p><strong>Advanced Text Editor - এডভান্স টেক্সট এডিটর</strong></p>
+                    <p>Version - সংস্করণ: 2.0</p>
+                    <p>Created by - তৈরি করেছেন: Sabbir Islam</p>
+                    <p>Features - বৈশিষ্ট্য:</p>
+                    <ul style="margin-left: 20px;">
+                        <li>Text editing with formatting - ফরম্যাটিং সহ টেক্সট এডিটিং</li>
+                        <li>File system access - ফাইল সিস্টেম অ্যাক্সেস</li>
+                        <li>Handwriting mode - হাতের লেখা মোড</li>
+                        <li>Image support - ছবি সাপোর্ট</li>
+                        <li>Real-time statistics - রিয়েল-টাইম পরিসংখ্যান</li>
+                    </ul>
+                </div>
+                <button onclick="closeModal('about-modal')" style="width: 100%; padding: 10px;">Close - বন্ধ</button>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="file-info">
+                File - ফাইল: <span id="current-file">Untitled.txt - নতুন ফাইল</span>
+            </div>
+            <div class="unsaved" id="unsaved-indicator" style="display: none;">
+                * Unsaved Changes - * সেভ করা হয়নি
+            </div>
+        </div>
+    </div>
 
-  <div id="menu">
-    <button onclick="saveFile()">💾 সেভ</button>
-    <button onclick="openFile()">📂 ওপেন</button>
-    <button onclick="clearText()">🧹 ক্লিয়ার</button>
-    <button onclick="shareText()">📤 শেয়ার</button>
-    <button onclick="changeColor()">🎨 কালার</button>
-    <button onclick="changeFont()">🔤 ফন্ট</button>
-  </div>
-
-  <textarea id="editor" placeholder="এখানে লিখুন..."></textarea>
-
-  <script src="script.js"></script>
+    <script>
+        let currentFileHandle = null;
+        let hasUnsavedChanges = false;
+        let isDrawing = false;
+        let canvas, ctx;
+        let currentBrushColor = '#000000';
+        let currentBrushSize = 2;
+        
+        // DOM Elements
+        const fileContent = document.getElementById('file-content');
+        const currentFile = document.getElementById('current-file');
+        const unsavedIndicator = document.getElementById('unsaved-indicator');
+        const saveBtn = document.getElementById('save-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const colorPalette = document.getElementById('color-palette');
+        const fontSelector = document.getElementById('font-selector');
+        const handwritingCanvas = document.getElementById('handwriting-canvas');
+        const handwritingTools = document.getElementById('handwriting-tools');
+        const imagePreview = document.getElementById('image-preview');
+        
+        // Initialize
+        function init() {
+            canvas = handwritingCanvas;
+            ctx = canvas.getContext('2d');
+            setupCanvas();
+            updateStats();
+        }
+        
+        // Menu Functions
+        function toggleMenu() {
+            dropdownMenu.classList.toggle('active');
+            closeSubMenus();
+        }
+        
+        function toggleSubmenu(menuId) {
+            const menu = document.getElementById(menuId);
+            menu.classList.toggle('active');
+        }
+        
+        function closeSubMenus() {
+            const submenus = document.querySelectorAll('.submenu');
+            submenus.forEach(menu => menu.classList.remove('active'));
+            colorPalette.classList.remove('active');
+            fontSelector.classList.remove('active');
+        }
+        
+        // File Operations
+        async function newFile() {
+            if (hasUnsavedChanges && !confirm('You have unsaved changes. Are you sure?\nসেভ না করা পরিবর্তন আছে। আপনি কি নিশ্চিত?')) {
+                return;
+            }
+            fileContent.value = '';
+            currentFileHandle = null;
+            currentFile.textContent = 'Untitled.txt - নতুন ফাইল';
+            hasUnsavedChanges = false;
+            updateUI();
+            updateStats();
+            closeAllMenus();
+        }
+        
+        async function openFile() {
+            try {
+                if (!('showOpenFilePicker' in window)) {
+                    alert('File System Access API not supported in your browser\nআপনার ব্রাউজারে ফাইল সিস্টেম API সাপোর্ট করে না');
+                    return;
+                }
+                
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Text Files',
+                        accept: {'text/plain': ['.txt']},
+                    }],
+                });
+                
+                const file = await fileHandle.getFile();
+                const content = await file.text();
+                
+                fileContent.value = content;
+                currentFileHandle = fileHandle;
+                currentFile.textContent = file.name;
+                hasUnsavedChanges = false;
+                updateUI();
+                updateStats();
+                closeAllMenus();
+                
+            } catch (error) {
+                console.log('File selection cancelled');
+            }
+        }
+        
+        async function saveFile() {
+            try {
+                if (!currentFileHandle) {
+                    currentFileHandle = await window.showSaveFilePicker({
+                        types: [{
+                            description: 'Text Files',
+                            accept: {'text/plain': ['.txt']},
+                        }],
+                    });
+                }
+                
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(fileContent.value);
+                await writable.close();
+                
+                currentFile.textContent = currentFileHandle.name;
+                hasUnsavedChanges = false;
+                updateUI();
+                closeAllMenus();
+                
+                alert('File saved successfully!\nফাইল সফলভাবে সেভ করা হয়েছে!');
+                
+            } catch (error) {
+                console.log('File save cancelled');
+            }
+        }
+        
+        // Advanced Text Features
+        function showColorPalette() {
+            colorPalette.classList.toggle('active');
+            fontSelector.classList.remove('active');
+        }
+        
+        function showFontSelector() {
+            fontSelector.classList.toggle('active');
+            colorPalette.classList.remove('active');
+        }
+        
+        function changeTextColor(color) {
+            document.execCommand('foreColor', false, color);
+            colorPalette.classList.remove('active');
+            hasUnsavedChanges = true;
+            updateUI();
+        }
+        
+        function changeFont(font) {
+            document.execCommand('fontName', false, font);
+            fontSelector.classList.remove('active');
+            hasUnsavedChanges = true;
+            updateUI();
+        }
+        
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            hasUnsavedChanges = true;
+            updateUI();
+            closeAllMenus();
+        }
+        
+        function addBulletPoints() {
+            const selectedText = window.getSelection().toString();
+            if (selectedText) {
+                const lines = selectedText.split('\n');
+                const bulletedText = lines.map(line => line.trim() ? '• ' + line : '').join('\n');
+                document.execCommand('insertText', false, bulletedText);
+            } else {
+                document.execCommand('insertHTML', false, '• ');
+            }
+            hasUnsavedChanges = true;
+            updateUI();
+            closeAllMenus();
+        }
+        
+        // Statistics Functions
+        function updateStats() {
+            const content = fileContent.value;
+            const charCount = content.length;
+            const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+            const lineCount = content ? content.split('\n').length : 1;
+            const pageCount = Math.ceil(charCount / 2000);
+            
+            document.getElementById('char-count').textContent = charCount.toLocaleString();
+            document.getElementById('word-count').textContent = wordCount.toLocaleString();
+            document.getElementById('line-count').textContent = lineCount.toLocaleString();
+            document.getElementById('page-count').textContent = pageCount;
+            
+            hasUnsavedChanges = true;
+            updateUI();
+        }
+        
+        function showWordCount() {
+            const content = fileContent.value;
+            const charCount = content.length;
+            const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+            const lineCount = content ? content.split('\n').length : 1;
+            const pageCount = Math.ceil(charCount / 2000);
+            
+            document.getElementById('modal-char-count').textContent = charCount.toLocaleString();
+            document.getElementById('modal-word-count').textContent = wordCount.toLocaleString();
+            document.getElementById('modal-line-count').textContent = lineCount.toLocaleString();
+            document.getElementById('modal-page-count').textContent = pageCount;
+            
+            document.getElementById('word-count-modal').classList.add('active');
+            closeAllMenus();
+        }
+        
+        // Share Function
+        function shareContent() {
+            const content = fileContent.value;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Text from Advanced Editor',
+                    text: content,
+                })
+                .then(() => console.log('Shared successfully'))
+                .catch((error) => console.log('Share failed:', error));
+            } else {
+                // Fallback: Copy to clipboard
+                navigator.clipboard.writeText(content)
+                    .then(() => alert('Text copied to clipboard!\nটেক্সট ক্লিপবোর্ডে কপি করা হয়েছে!'))
+                    .catch(() => alert('Could not copy text\nটেক্সট কপি করা যায়নি'));
+            }
+            closeAllMenus();
+        }
+        
+        // About Function
+        function showAbout() {
+            document.getElementById('about-modal').classList.add('active');
+            closeAllMenus();
+        }
+        
+        // Handwriting Functions
+        function toggleHandwriting() {
+            const isActive = handwritingCanvas.style.display === 'block';
+            handwritingCanvas.style.display = isActive ? 'none' : 'block';
+            handwritingTools.classList.toggle('active', !isActive);
+            fileContent.style.display = isActive ? 'block' : 'none';
+            closeAllMenus();
+        }
+        
+        function setupCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            ctx.strokeStyle = currentBrushColor;
+            ctx.lineWidth = currentBrushSize;
+            ctx.lineCap = 'round';
+            
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+        
+        function changeBrushColor(color) {
+            currentBrushColor = color;
+            ctx.strokeStyle = color;
+        }
+        
+        function changeBrushSize(size) {
+            currentBrushSize = size;
+            ctx.lineWidth = size;
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        function saveDrawing() {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'drawing.png';
+            link.href = dataURL;
+            link.click();
+        }
+        
+        // Image Functions
+        function addImage() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        imagePreview.src = event.target.result;
+                        imagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+            closeAllMenus();
+        }
+        
+        // Utility Functions
+        function updateUI() {
+            saveBtn.disabled = !hasUnsavedChanges;
+            unsavedIndicator.style.display = hasUnsavedChanges ? 'block' : 'none';
+        }
+        
+        function closeAllMenus() {
+            dropdownMenu.classList.remove('active');
+            colorPalette.classList.remove('active');
+            fontSelector.classList.remove('active');
+            closeSubMenus();
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        // Close menus when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!dropdownMenu.contains(e.target) && !e.target.classList.contains('menu-btn')) {
+                closeAllMenus();
+            }
+        });
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
   </html>
