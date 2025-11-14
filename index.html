@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Professional Text Editor + Canvas</title>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    color: #000;
+    transition: background 0.3s, color 0.3s;
+}
+button, select, input[type="number"], input[type="color"] {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 16px;
+    cursor: pointer;
+}
+button:hover { background: #eee; }
+#menuBtn {
+    font-size: 28px;
+    padding: 10px;
+    cursor: pointer;
+    display: inline-block;
+}
+#sideMenu {
+    width: 300px;
+    background: #fff;
+    position: fixed;
+    top: 0;
+    left: -300px;
+    height: 100vh;
+    padding: 15px;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+    overflow-y: auto;
+    transition: 0.3s;
+    z-index: 100;
+}
+#editor {
+    width: calc(100% - 20px);
+    height: 45vh;
+    padding: 12px;
+    font-size: 18px;
+    border: none;
+    outline: none;
+    resize: none;
+    background: #fff;
+    margin: 10px;
+    box-sizing: border-box;
+    border-radius: 6px;
+}
+#canvas {
+    width: calc(100% - 20px);
+    height: 30vh;
+    margin: 10px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 6px;
+}
+#count { font-weight: bold; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<span id="menuBtn">☰</span>
+
+<div id="sideMenu">
+    <button onclick="newFile()">নতুন ফাইল</button>
+    <input type="file" id="openFile" onchange="openFile(event)">
+    <button onclick="saveFile()">সেভ</button>
+    <button onclick="downloadPDF()">PDF বানাও</button>
+
+    <label>ফন্ট:</label>
+    <select id="fontSelect" onchange="updateFont()">
+        <option value="Arial">Arial</option>
+        <option value="Noto Sans Bengali">Noto Sans Bengali</option>
+        <option value="SolaimanLipi">SolaimanLipi</option>
+        <option value="Times New Roman">Times New Roman</option>
+    </select>
+
+    <label>ফন্ট সাইজ:</label>
+    <input type="number" id="fontSize" value="18" onchange="updateFont()" />
+
+    <label>লেখার রং:</label>
+    <input type="color" id="fontColor" onchange="updateColor()" />
+
+    <label>ব্যাকগ্রাউন্ড:</label>
+    <input type="color" id="bgColor" onchange="updateBG()" />
+
+    <label>ছবি যোগ:</label>
+    <input type="file" id="imgInput" accept="image/*" onchange="addImage(event)" />
+
+    <button onclick="toggleHandWriting()">✍️ হ্যান্ডরাইটিং মোড</button>
+    <label>Brush Size:</label>
+    <input type="number" id="brushSize" value="3" min="1" max="20" onchange="updateBrush()" />
+    <button onclick="toggleEraser()">🩹 Eraser</button>
+    <button onclick="toggleDarkMode()">ডার্ক মোড</button>
+    <button onclick="undoDraw()">↶ Undo</button>
+    <button onclick="redoDraw()">↷ Redo</button>
+    <button onclick="shareText()">শেয়ার</button>
+
+    <label>Text Style:</label>
+    <button onclick="toggleBold()">Bold</button>
+    <button onclick="toggleItalic()">Italic</button>
+    <button onclick="toggleUnderline()">Underline</button>
+
+    <p>আখর সংখ্যা: <span id="count">0</span></p>
+</div>
+
+<textarea id="editor" oninput="countChars()"></textarea>
+<canvas id="canvas"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// ====== Menu ======
+let menuOpen = false;
+const menuBtn = document.getElementById('menuBtn');
+const sideMenu = document.getElementById('sideMenu');
+menuBtn.onclick = () => {
+    sideMenu.style.left = menuOpen ? "-300px" : "0";
+    menuOpen = !menuOpen;
+};
+
+// ====== Text Editor ======
+const editor = document.getElementById('editor');
+const fontSelect = document.getElementById('fontSelect');
+const fontSize = document.getElementById('fontSize');
+const fontColor = document.getElementById('fontColor');
+const bgColor = document.getElementById('bgColor');
+const count = document.getElementById('count');
+
+function newFile() { editor.value = ""; countChars(); }
+function openFile(event) {
+    let reader = new FileReader();
+    reader.onload = e => { editor.value = e.target.result; countChars(); };
+    reader.readAsText(event.target.files[0]);
+}
+function saveFile() {
+    const blob = new Blob([editor.value], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "note.txt";
+    a.click();
+}
+function updateFont() { editor.style.fontFamily = fontSelect.value; editor.style.fontSize = fontSize.value + "px"; }
+function updateColor() { editor.style.color = fontColor.value; }
+function updateBG() { editor.style.background = bgColor.value; }
+function countChars() { count.innerText = editor.value.length; }
+
+// ====== Text Style ======
+function toggleBold() { editor.style.fontWeight = (editor.style.fontWeight === "bold") ? "normal" : "bold"; }
+function toggleItalic() { editor.style.fontStyle = (editor.style.fontStyle === "italic") ? "normal" : "italic"; }
+function toggleUnderline() { editor.style.textDecoration = (editor.style.textDecoration === "underline") ? "none" : "underline"; }
+
+// ====== Auto-save ======
+setInterval(() => { localStorage.setItem('autosaveText', editor.value); }, 5000);
+window.onload = () => { if(localStorage.getItem('autosaveText')) editor.value = localStorage.getItem('autosaveText'); countChars(); }
+
+// ====== PDF ======
+function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const text = editor.value;
+    const lines = doc.splitTextToSize(text, 180);
+    doc.text(lines, 10, 10);
+    doc.save("note.pdf");
+}
+
+// ====== Canvas ======
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth - 20;
+canvas.height = window.innerHeight * 0.3;
+
+let drawing = false;
+let handwriting = false;
+let brushColor = "#000";
+let brushSize = 3;
+let eraserMode = false;
+let undoStack = [];
+let redoStack = [];
+
+function toggleHandWriting() { handwriting = !handwriting; }
+function updateBrush() { brushSize = document.getElementById('brushSize').value; }
+function toggleEraser() { eraserMode = !eraserMode; brushColor = eraserMode ? "#fff" : "#000"; }
+
+function saveState() { undoStack.push(canvas.toDataURL()); if (undoStack.length>50) undoStack.shift(); }
+
+canvas.addEventListener("mousedown", e => { if(!handwriting) return; drawing=true; saveState(); ctx.beginPath(); ctx.moveTo(e.offsetX,e.offsetY); });
+canvas.addEventListener("mousemove", e => { if(!drawing||!handwriting) return; ctx.lineWidth=brushSize; ctx.strokeStyle=brushColor; ctx.lineTo(e.offsetX,e.offsetY); ctx.stroke(); });
+canvas.addEventListener("mouseup", ()=>drawing=false);
+canvas.addEventListener("mouseout", ()=>drawing=false);
+
+function undoDraw() { if(!undoStack.length) return; redoStack.push(canvas.toDataURL()); let img=new Image(); img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0);} img.src=undoStack.pop(); }
+function redoDraw() { if(!redoStack.length) return; undoStack.push(canvas.toDataURL()); let img=new Image(); img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0);} img.src=redoStack.pop(); }
+function addImage(event){ let img=new Image(); img.onload=()=>ctx.drawImage(img,20,20,180,160); img.src=URL.createObjectURL(event.target.files[0]); }
+
+// ====== Dark Mode ======
+function toggleDarkMode() {
+    const dark = document.body.style.background === "black";
+    document.body.style.background = dark ? "#f2f2f2" : "#000";
+    editor.style.background = dark ? "#fff" : "#222";
+    editor.style.color = dark ? "#000" : "#fff";
+    canvas.style.background = dark ? "#fff" : "#222";
+}
+
+// ====== Share ======
+async function shareText() {
+    if(navigator.share){ try{ await navigator.share({ text: editor.value }); }catch(e){ alert("শেয়ার বাতিল"); } }
+    else alert("শেয়ার সাপোর্ট নেই");
+}
+
+// ====== Responsive Canvas ======
+window.addEventListener("resize",()=>{
+    const imgData=canvas.toDataURL();
+    canvas.width = window.innerWidth - 20;
+    canvas.height = window.innerHeight * 0.3;
+    let img=new Image();
+    img.onload=()=>ctx.drawImage(img,0,0);
+    img.src=imgData;
+});
+</script>
+</body>
+</html>
