@@ -1,0 +1,202 @@
+<!DOCTYPE html><html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Text Editor Fixed</title>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    background: #f2f2f2;
+    font-family: Arial;
+}
+#menuBtn {
+    font-size: 28px;
+    padding: 10px;
+    cursor: pointer;
+    display: inline-block;
+}
+#sideMenu {
+    width: 270px;
+    background: white;
+    position: fixed;
+    height: 100vh;
+    top: 0;
+    left: -270px;
+    transition: 0.3s;
+    padding: 15px;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+    overflow-y: auto;
+}
+#editor {
+    width: 100%;
+    height: 50vh;
+    padding: 12px;
+    font-size: 18px;
+    border: none;
+    outline: none;
+    resize: none;
+    background: white;
+}
+#canvas {
+    width: 100%;
+    height: 35vh;
+    border: 1px solid #ccc;
+    background: white;
+}
+button, select, input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 12px;
+}
+</style>
+</head>
+<body><span id="menuBtn">☰</span>
+
+<div id="sideMenu">
+    <button onclick="newFile()">নতুন ফাইল</button>
+    <input type="file" id="openFile" onchange="openFile(event)">
+    <button onclick="saveFile()">সেভ</button>
+    <button onclick="downloadPDF()">PDF বানাও</button><label>ফন্ট:</label>
+<select id="fontSelect" onchange="updateFont()">
+    <option value="Arial">Arial</option>
+    <option value="Noto Sans Bengali">Noto Sans Bengali</option>
+    <option value="SolaimanLipi">SolaimanLipi</option>
+    <option value="Times New Roman">Times New Roman</option>
+</select>
+
+<label>ফন্ট সাইজ:</label>
+<input type="number" id="fontSize" value="18" onchange="updateFont()" />
+
+<label>লেখার রং:</label>
+<input type="color" id="fontColor" onchange="updateColor()" />
+
+<label>ব্যাকগ্রাউন্ড:</label>
+<input type="color" id="bgColor" onchange="updateBG()" />
+
+<label>ছবি যোগ:</label>
+<input type="file" id="imgInput" accept="image/*" onchange="addImage(event)" />
+
+<button onclick="toggleHandWriting()">✍️ হ্যান্ডরাইটিং মোড</button>
+<button onclick="toggleDarkMode()">ডার্ক মোড</button>
+<button onclick="undoDraw()">↶ Undo</button>
+<button onclick="redoDraw()">↷ Redo</button>
+<button onclick="shareText()">শেয়ার</button>
+
+<p>আখর সংখ্যা: <span id="count">0</span></p>
+
+</div><textarea id="editor" oninput="countChars()"></textarea><canvas id="canvas"></canvas>
+
+<script>
+let menuOpen = false;
+menuBtn.onclick = () => {
+    sideMenu.style.left = menuOpen ? "-270px" : "0";
+    menuOpen = !menuOpen;
+};
+
+function newFile() {
+    editor.value = "";
+    countChars();
+}
+function openFile(event) {
+    let reader = new FileReader();
+    reader.onload = e => editor.value = e.target.result;
+    reader.readAsText(event.target.files[0]);
+}
+function saveFile() {
+    const blob = new Blob([editor.value], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "note.txt";
+    a.click();
+}
+function updateFont() {
+    editor.style.fontFamily = fontSelect.value;
+    editor.style.fontSize = fontSize.value + "px";
+}
+function updateColor() {
+    editor.style.color = fontColor.value;
+}
+function updateBG() {
+    editor.style.background = bgColor.value;
+}
+function countChars() {
+    count.innerText = editor.value.length;
+}
+
+// CANVAS
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight * 0.35;
+let drawing = false;
+let handwriting = false;
+let brushColor = "#000";
+let undoStack = [];
+let redoStack = [];
+
+function toggleHandWriting() {
+    handwriting = !handwriting;
+}
+function saveState() {
+    undoStack.push(canvas.toDataURL());
+}
+canvas.addEventListener("mousedown", e => {
+    if (!handwriting) return;
+    drawing = true;
+    saveState();
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+});
+canvas.addEventListener("mousemove", e => {
+    if (!drawing || !handwriting) return;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = brushColor;
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+});
+canvas.addEventListener("mouseup", () => drawing = false);
+canvas.addEventListener("mouseout", () => drawing = false);
+
+function undoDraw() {
+    if (!undoStack.length) return;
+    redoStack.push(canvas.toDataURL());
+    let img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0);
+    img.src = undoStack.pop();
+}
+function redoDraw() {
+    if (!redoStack.length) return;
+    undoStack.push(canvas.toDataURL());
+    let img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0);
+    img.src = redoStack.pop();
+}
+
+function addImage(event) {
+    let img = new Image();
+    img.onload = () => ctx.drawImage(img, 20, 20, 180, 160);
+    img.src = URL.createObjectURL(event.target.files[0]);
+}
+
+function toggleDarkMode() {
+    let dark = document.body.style.background === "black";
+    document.body.style.background = dark ? "#f2f2f2" : "black";
+    editor.style.background = dark ? "white" : "#222";
+    editor.style.color = dark ? "black" : "white";
+}
+
+async function shareText() {
+    if (navigator.share) await navigator.share({ text: editor.value });
+    else alert("শেয়ার সাপোর্ট নেই");
+}
+
+function downloadPDF() {
+    let w = window.open("", "");
+    w.document.write(`<pre>${editor.value}</pre>`);w.print();
+w.close();
+
+} </script>
+
+</body>
+</html>
