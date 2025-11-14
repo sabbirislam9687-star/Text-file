@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>text in file</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Noto Sans Bengali", sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1976d2;
+      color: #fff;
+      padding: 10px 15px;
+    }
+    header h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+    #menuButton {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    #menu {
+      display: none;
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      padding: 10px;
+      z-index: 999;
+    }
+    #menu button, #menu select, #menu input {
+      display: block;
+      margin: 5px 0;
+      width: 100%;
+      padding: 6px;
+      font-size: 14px;
+    }
+    #editor {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    textarea {
+      flex: 1;
+      padding: 15px;
+      font-size: 16px;
+      resize: none;
+      border: none;
+      outline: none;
+      background: var(--bg-color, white);
+      color: var(--font-color, black);
+      font-family: var(--font-family, "Noto Sans Bengali");
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ফাইল এডিটর</h1>
+    <button id="menuButton">☰</button>
+  </header>
+
+  <div id="menu">
+    <button id="newFile">নতুন ফাইল</button>
+    <button id="openFile">ফাইল খুলুন</button>
+    <button id="saveFile">ফাইল সংরক্ষণ</button>
+    <select id="fontSelect">
+      <option value="Noto Sans Bengali">Noto Sans Bengali</option>
+      <option value="Kalpurush">Kalpurush</option>
+      <option value="SolaimanLipi">SolaimanLipi</option>
+      <option value="Arial">Arial</option>
+      <option value="Times New Roman">Times New Roman</option>
+    </select>
+    <input type="number" id="fontSize" placeholder="Font size" min="10" max="60" value="16">
+    <input type="color" id="fontColor" title="লেখার রঙ">
+    <input type="color" id="bgColor" title="ব্যাকগ্রাউন্ড রঙ">
+    <button id="toggleHandwriting">✍️ হ্যান্ডরাইটিং মোড</button>
+    <button id="insertImage">🖼️ ছবি যুক্ত করুন</button>
+  </div>
+
+  <div id="editor">
+    <textarea id="textArea" placeholder="এখানে লিখুন..."></textarea>
+    <canvas id="handCanvas"></canvas>
+  </div>
+
+  <script>
+    const menuButton = document.getElementById('menuButton');
+    const menu = document.getElementById('menu');
+    const textArea = document.getElementById('textArea');
+    const handCanvas = document.getElementById('handCanvas');
+    const ctx = handCanvas.getContext('2d');
+    const fontSelect = document.getElementById('fontSelect');
+    const fontSize = document.getElementById('fontSize');
+    const fontColor = document.getElementById('fontColor');
+    const bgColor = document.getElementById('bgColor');
+    const toggleHandwriting = document.getElementById('toggleHandwriting');
+
+    let handwriting = false;
+    let drawing = false;
+
+    function resizeCanvas() {
+      handCanvas.width = handCanvas.clientWidth;
+      handCanvas.height = handCanvas.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    menuButton.onclick = () => {
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    };
+
+    // Font & color change
+    fontSelect.onchange = () => {
+      document.documentElement.style.setProperty("--font-family", fontSelect.value);
+    };
+    fontSize.oninput = () => {
+      textArea.style.fontSize = fontSize.value + "px";
+    };
+    fontColor.oninput = () => {
+      document.documentElement.style.setProperty("--font-color", fontColor.value);
+      ctx.strokeStyle = fontColor.value;
+    };
+    bgColor.oninput = () => {
+      document.documentElement.style.setProperty("--bg-color", bgColor.value);
+    };
+
+    // Handwriting mode
+    toggleHandwriting.onclick = () => {
+      handwriting = !handwriting;
+      handCanvas.style.display = handwriting ? "block" : "none";
+      toggleHandwriting.textContent = handwriting ? "📝 টাইপিং মোডে ফেরত" : "✍️ হ্যান্ডরাইটিং মোড";
+    };
+
+    // Drawing (3D style)
+    let lastX = 0, lastY = 0;
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 2;
+    ctx.shadowColor = "rgba(0,0,0,0.3)";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#000";
+
+    handCanvas.addEventListener('mousedown', e => {
+      if (!handwriting) return;
+      drawing = true;
+      [lastX, lastY] = [e.offsetX, e.offsetY];
+    });
+    handCanvas.addEventListener('mousemove', e => {
+      if (!drawing || !handwriting) return;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+      [lastX, lastY] = [e.offsetX, e.offsetY];
+    });
+    handCanvas.addEventListener('mouseup', () => drawing = false);
+    handCanvas.addEventListener('mouseout', () => drawing = false);
+
+    // Image insert
+    document.getElementById('insertImage').onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 50, 50, img.width / 2, img.height / 2);
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    };
+
+    // File handling
+    document.getElementById('newFile').onclick = () => textArea.value = "";
+    document.getElementById('openFile').onclick = async () => {
+      const [fileHandle] = await window.showOpenFilePicker();
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      textArea.value = text;
+    };
+    document.getElementById('saveFile').onclick = async () => {
+      const blob = new Blob([textArea.value], { type: 'text/plain' });
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'myfile.txt',
+        types: [{ description: 'Text Files', accept: { 'text/plain': ['.txt'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    };
+  </script>
+</body>
+</html>
